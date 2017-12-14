@@ -4,16 +4,19 @@
 % clearvars
 % clc
 %% Load individual data & specify preprocessing filter type
-thisdir = pwd;
-filename = [pwd '\ASD25.txt'];
+root = 'D:\Ruonan\Projects in the lab\Ambiguity-as-stressor Project\Tobii script\AS_PatternPilotData\AS_DecisionTobiiData';
+filename = fullfile(root, 'ASD25.txt');
 % cd 'C:\Users\rj299\Documents\Projects in the lab\Ambiguity-as-stressor Project\Tobii script\AS_PatternPilotData\AS_DecisionTobiiData';
 s = tdfread(filename);
 
 % Pupil data preprocessing filter type
 filter = struct;
 filter.filterType = 'sgolay';
-filter.order = 3;
-filter.framelen = 21;
+filter.order = 3; % order of polynomial for sgolay filter?
+filter.framelen = 21; % length of window? must be odd number
+filter.clearWin = 0; % delete the n surrounding data points of a blink
+filter.velThreshold = 2; % de-blinking relative velocity threshold
+
 
 %% Extract pupil data from different time period
 
