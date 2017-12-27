@@ -5,7 +5,7 @@
 % clc
 
 %% load data
-subjidx=14;
+subjidx=1;
 subj = [21 22 23 24 25 26 27 28 29 30 31 32 33 34];
 datafold = 'D:\Ruonan\Projects in the lab\Ambiguity-as-stressor Project\Tobii script\AS_PatternPilotData\AS_DecisionTobiiData\Matlab data';
 dataname = ['\ASD',num2str(subj(subjidx)), '_origData.mat']
@@ -19,7 +19,9 @@ filter.framelen = 21; % length of window? must be odd number
 filter.clearWin = 1; % delete the n surrounding data points of a blink
 filter.velThreshold = 3; % de-blinking relative velocity threshold
 
+% get screen size for convenience of plotting
 screensize = get(groot, 'Screensize');
+
 %% Extract pupil data from different time period
 %% 1. Initial pupil response
 % Extract the 2sITI + 3sLottery presentation + 5s Delay

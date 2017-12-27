@@ -1,6 +1,6 @@
 function [sampfilt,sampfiltz] = pupilPrepro(samp,sampt,filter)
-% This function preprocesses the raw pupil data
-% Detect blink, interpolation, filter
+
+%% This function preprocesses the raw pupil data
 %
 % Input:
 %   - samp: pupil size data
@@ -9,22 +9,50 @@ function [sampfilt,sampfiltz] = pupilPrepro(samp,sampt,filter)
 %       - filterType: string
 %       - order: polynomial order for sgolay filter
 %       - framelen: window size
+%       - clearWin: number of surrounding data points to delete on both
+%         left and right sides. actually deleting (2*clearWin + 1) data points
+%       - velThreshold: how many std is compared with the velocity difference from mean
 % Output:
-%   -sampfilt: filtered pupil size data
+%   - sampfilt: filtered pupil size data
+%   - sampfiltz: z-scored filtered pupil size data
+%   - velfilt: velocity of z-scored filtered pupil size data. TO BE ADDED
+
+%% Preprocessing steps
+% 
+% 1. Check data quality:
+%       If over 40% data points are missing, delete the trial completely. 
+% 2. Deblink: 
+%       First calculate the velocity of each time point. If
+%       the difference between velocity at time t and the mean velocity is larger
+%       than the filter.velThreshold*velocity standard deviation, delete this
+%       data point at time t plus the surrounding filter.clearWin data points on both left
+%       and right side of time t.
+% 3. Interpolate: 
+%       linear interpolation of missing data points
+% 4. Filter: 
+%       filter the interpolated time course depending on the filter type
+%       and filter set-up parameters, which typically includes window length
+% 5. Z-score: 
+%       z-score the filtered time course
+% 6. Plot: 
+%       plot the velocity profile. 
+%       plot the time course in three panels:
+%       upper: raw time course; 
+%       middle: raw time course, interpolated time course, filtered time course overlaid; 
+%       lower: z-scored filtered time course.
 
 %% Histroy
-% Ruonan 12.07.2017 written
+% Ruonan Jia 12.07.2017 written
 
 %% For tsting the function, giving input to test the function
 % samp = sInitial.PupilLeft(1,:);
 % sampt = sInitial.Timestamp(1,:);
 % % filter.order = 3; % order of polynomial for sgolay filter?
 % filter.framelen = 21; % length of windew? must be odd number
-% filter.filterType = 'sgolay';
 % filter.clearWin = 2; % delete the n surrounding data points of a blink
 % filter.velThreshold = 2; % de-blinking velocity threshold
-
-% filter.filterType = 'hannWindow';
+% filter.filterType = 'sgolay';
+% % filter.filterType = 'hannWindow';
 
 % decide if missing too much data
 dataQual = 1-sum(isnan(samp))/length(samp);
@@ -44,12 +72,12 @@ if dataQual >0.6
     velStd = nanstd(vel);
     velMean = nanmean(vel);
     
-    % detect fast speed change, and delete the surrounding data points
+    % detect fast speed, and delete the surrounding data points
     for i = 1:length(vel)
         if abs(vel(i)-velMean)/velStd > filter.velThreshold || isnan(vel(i))
             if i-filter.clearWin > 1 && i+filter.clearWin < length(vel)
-                sampdb(i-filter.clearWin:i+filter.clearWin)=NaN; %excluding |velocity|>5 from sample, db means "delete blink"
-                veldb(i-filter.clearWin:i+filter.clearWin)=NaN; %excluding |velocity|>5 from velocity profile
+                sampdb(i-filter.clearWin:i+filter.clearWin)=NaN; 
+                veldb(i-filter.clearWin:i+filter.clearWin)=NaN; 
             elseif i-filter.clearWin < 1
                 sampdb(1:i+filter.clearWin)=NaN; 
                 veldb(1:i+filter.clearWin)=NaN; 
@@ -118,11 +146,11 @@ if dataQual >0.6
     end
 
     %% Plot individual pupil time series results
-%     % velocity profile
-%     figure
-%     plot(sampt,vel, 'LineStyle', '-.', 'Marker', 'o')
-%     hold on
-%     plot(sampt,veldb,'LineStyle', '-.', 'Marker', 'o')
+    % velocity profile
+    figure
+    plot(sampt,vel, 'LineStyle', '-.', 'Marker', 'o')
+    hold on
+    plot(sampt,veldb,'LineStyle', '-.', 'Marker', 'o')
     
     % pupil size time series
     screensize = get(groot, 'Screensize');
