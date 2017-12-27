@@ -1,4 +1,4 @@
-function [sampfilt,sampfiltz] = pupilPrepro(samp,sampt,filter)
+% function [sampfilt,sampfiltz,velfilt] = pupilPrepro(sampleft,sampright,sampt,filter)
 
 %% This function preprocesses the raw pupil data
 %
@@ -20,13 +20,17 @@ function [sampfilt,sampfiltz] = pupilPrepro(samp,sampt,filter)
 %% Preprocessing steps
 % 
 % 1. Check data quality:
-%       If over 40% data points are missing, delete the trial completely. 
+%       ??If over 40% data points are missing, delete the trial completely. 
 % 2. Deblink: 
 %       First calculate the velocity of each time point. If
 %       the difference between velocity at time t and the mean velocity is larger
 %       than the filter.velThreshold*velocity standard deviation, delete this
 %       data point at time t plus the surrounding filter.clearWin data points on both left
 %       and right side of time t.
+%
+%       Combining binocular data. After de-blinking, average the left and right data if both data 
+%       exist; or use one side of data if the other side is missing; or leave as blank if both 
+%       sides data are missing. Assuming that pupil size are same of both sides of the eyes 
 % 3. Interpolate: 
 %       linear interpolation of missing data points
 % 4. Filter: 
@@ -45,48 +49,31 @@ function [sampfilt,sampfiltz] = pupilPrepro(samp,sampt,filter)
 % Ruonan Jia 12.07.2017 written
 
 %% For tsting the function, giving input to test the function
-% samp = sInitial.PupilLeft(1,:);
-% sampt = sInitial.Timestamp(1,:);
-% % filter.order = 3; % order of polynomial for sgolay filter?
-% filter.framelen = 21; % length of windew? must be odd number
-% filter.clearWin = 2; % delete the n surrounding data points of a blink
-% filter.velThreshold = 2; % de-blinking velocity threshold
-% filter.filterType = 'sgolay';
-% % filter.filterType = 'hannWindow';
+sampleft = sInitial.PupilLeft(6,:);
+sampright= sInitial.PupilRight(6,:);
+sampt = sInitial.Timestamp(1,:);
+% filter.order = 3; % order of polynomial for sgolay filter?
+filter.framelen = 21; % length of windew? must be odd number
+filter.clearWin = 2; % delete the n surrounding data points of a blink
+filter.velThreshold = 2; % de-blinking velocity threshold
+filter.filterType = 'sgolay';
+% filter.filterType = 'hannWindow';
 
 % decide if missing too much data
-dataQual = 1-sum(isnan(samp))/length(samp);
-if dataQual >0.6
+% dataQual = 1-sum(isnan(samp))/length(samp);
+% if dataQual >0.6
     %% De-blink
-    % Detect blink
-    vel = zeros(size(samp)); % velocity profile, mm/s
-    % calculate the velocity
-    for i=2:length(samp)
-        vel(i)= (samp(i)-samp(i-1))*1000/(sampt(i)-sampt(i-1));
-    end
-    vel(1)=vel(2);
-
-    veldb=vel;
-    sampdb = samp;
+    % Detect blink both left and right pupil data
+    [velleft,veldbleft,sampdbleft] = pupilDeblink(sampleft,sampt,filter);
+    [velright,veldbright,sampdbright] = pupilDeblink(sampright,sampt,filter);
     
-    velStd = nanstd(vel);
-    velMean = nanmean(vel);
-    
-    % detect fast speed, and delete the surrounding data points
-    for i = 1:length(vel)
-        if abs(vel(i)-velMean)/velStd > filter.velThreshold || isnan(vel(i))
-            if i-filter.clearWin > 1 && i+filter.clearWin < length(vel)
-                sampdb(i-filter.clearWin:i+filter.clearWin)=NaN; 
-                veldb(i-filter.clearWin:i+filter.clearWin)=NaN; 
-            elseif i-filter.clearWin < 1
-                sampdb(1:i+filter.clearWin)=NaN; 
-                veldb(1:i+filter.clearWin)=NaN; 
-            elseif i+filter.clearWin > length(vel)
-                sampdb(i-filter.clearWin:length(vel))=NaN; 
-                veldb(i-filter.clearWin:length(vel))=NaN; 
-            end
-        end
-    end
+    % combine left and right time course    
+    sampdb = zeros(size(sampdbleft));
+    sampdb(~isnan(sampdbleft) & ~isnan(sampdbright)) =...
+        mean([sampdbleft(~isnan(sampdbleft) & ~isnan(sampdbright));sampdbright(~isnan(sampdbleft) & ~isnan(sampdbright))]);
+    sampdb(isnan(sampdbleft) & ~isnan(sampdbright)) = sampdbright(isnan(sampdbleft) & ~isnan(sampdbright));
+    sampdb(~isnan(sampdbleft) & isnan(sampdbright)) = sampdbleft(~isnan(sampdbleft) & isnan(sampdbright));
+    sampdb(isnan(sampdbleft) & isnan(sampdbright)) = NaN;
     
     %% Interpolate missing data
     miss = find (isnan(sampdb)); % missing data
@@ -144,24 +131,49 @@ if dataQual >0.6
     else
         sampfiltz=zscore(sampfilt,0,2);
     end
-
-    %% Plot individual pupil time series results
-    % velocity profile
-    figure
-    plot(sampt,vel, 'LineStyle', '-.', 'Marker', 'o')
-    hold on
-    plot(sampt,veldb,'LineStyle', '-.', 'Marker', 'o')
     
-    % pupil size time series
+    %% velocity profile of the filtered timecourse
+    velfilt = zeros(size(sampfilt)); % velocity profile, mm/s
+    % calculate the velocity
+    for i=2:length(sampfilt)
+        velfilt(i)= (sampfilt(i)-sampfilt(i-1))*1000/(sampt(i)-sampt(i-1));
+    end
+    velfilt(1)=velfilt(2);
+    
+    %% Plot individual pupil time series results
     screensize = get(groot, 'Screensize');
+    
+    % velocity profile
+    figure('Position', [screensize(3)/4 screensize(4)/22 screensize(3)/2 screensize(4)*10/12])
+    
+    % left side raw and deblinked
+    ax1 = subplot(3,1,1);
+    plot(ax1,sampt,velleft, 'LineStyle', '-.', 'Marker', 'o')
+    hold on
+    plot(sampt,veldbleft,'LineStyle', '-.', 'Marker', 'o')
+    title(ax1,'left')
+    % right side raw and deblinked
+    ax2 = subplot(3,1,2);
+    plot(ax2,sampt,velright, 'LineStyle', '-.', 'Marker', 'o')
+    hold on
+    plot(sampt,veldbright,'LineStyle', '-.', 'Marker', 'o')
+    title('right')
+    % filtered
+    ax3 = subplot(3,1,3);
+    plot(ax3,sampt,velfilt, 'LineStyle', '-.', 'Marker', 'o')
+    title('filtered')
+     
+    %% Plot pupil size time series
     figure('Position', [screensize(3)/4 screensize(4)/22 screensize(3)/2 screensize(4)*10/12])
     ax1 = subplot(3,1,1);
-    plot(ax1,sampt,samp,'LineStyle', '-.', 'Marker', 'o')
+    plot(ax1,sampt,sampleft,'LineStyle', '-.', 'Marker', 'o')
+    hold on
+    plot(sampt,sampright,'LineStyle', '-.', 'Marker', 'o')    
     title(ax1,'raw signal')
     
     % ylim([3.2,4.4]);
     ax2 = subplot(3,1,2);
-    plot(ax2,sampt,samp,'LineStyle', '-.', 'Marker', 'o')
+    plot(ax2,sampt,nanmean([sampleft;sampright]),'LineStyle', '-.', 'Marker', 'o')
     hold on
     plot(sampt,sampdb,'LineStyle', '-.', 'Marker', 'o')
     plot(sampt,sampinterp,'LineStyle', '-', 'Marker', 'o')
@@ -184,9 +196,8 @@ if dataQual >0.6
     xLimit = xlim;
     yLimit = ylim;
     text(xLimit(2)*5/9,yLimit(1)+(yLimit(2)-yLimit(1))/8,'z-scored')
-else
-    % if data is bad, discard
-    sampfilt = ones(size(samp))*NaN;
-    sampfiltz = ones(size(samp))*NaN;
-end
-end
+% else
+%     % if data is bad, discard
+%     sampfilt = ones(size(samp))*NaN;
+%     sampfiltz = ones(size(samp))*NaN;
+% end
