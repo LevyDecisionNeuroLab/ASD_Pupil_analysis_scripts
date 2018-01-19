@@ -18,6 +18,10 @@ for subj2plot = 1:length(subj)
         al = [al; sInitial.AL];
         val = [val; sInitial.Val];  
     end
+    
+    % normalize by subtractin the mean of the 2s ITI period
+    pupilLeft_base = nanmean(pupilLeft_filt(:,1:120),2);
+    pupilLeft_filt = pupilLeft_filt - pupilLeft_base;
 
     pupilLeft_filt = pupilLeft_filt(100*(subj2plot-1)+1:100*subj2plot,:);
     al = al(100*(subj2plot-1)+1:100*subj2plot,:);
@@ -25,9 +29,12 @@ for subj2plot = 1:length(subj)
 
     % pupil size by value levels
     uniqueval = unique(val);
-    bins = 10; % how many groups to draw
+    % exclude $4 and $5
+    uniqueval = uniqueval(3:20);
+    
+    bins = 6; % how many groups to draw
     for i = 1:bins
-        averageByVal(i,:) = nanmean(pupilLeft_filt(val <= uniqueval(i*20/bins),:));
+        averageByVal(i,:) = nanmean(pupilLeft_filt(val <= uniqueval(i*18/bins),:));
     %     stdByVal(i,:) = nanstd(pupilLeft_filt(val <= uniqueval(i*4),:));
     %     seByVal(i,:) = std ./ sqrt(size(pupilLeft_filt,1));
     end
@@ -39,12 +46,12 @@ for subj2plot = 1:length(subj)
     end
     
     f = figure;
-    for i = 1:2
+    for i = 1:bins
         plot(sInitial.Timestamp(1,:), averageByVal(i,:), 'LineStyle', '-', 'Marker', '.', 'Color',colors{bins+1-i})
         hold on
     end
-    title(['ASD' num2str(subj(subj2plot)) ' pupil by value']);
+    title(['ASD' num2str(subj(subj2plot)) ' pupil by value(18 values) ITI normalized']);
 
 
-%     saveas(f,fullfile(root, 'Matlab data', 'pupil trace by value',['ASD' num2str(subj(subj2plot)) ' pupil by value.fig']));
+    saveas(f,fullfile(root, 'Matlab data', 'pupil trace by value',['ASD' num2str(subj(subj2plot)) ' pupil by value18_normalized.png']));
 end
