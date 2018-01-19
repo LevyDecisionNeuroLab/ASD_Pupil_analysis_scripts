@@ -8,6 +8,7 @@
 subjidx=1;
 subj = [21 22 23 24 25 26 27 28 29 30 31 32 33 34];
 datafold = 'D:\Ruonan\Projects in the lab\Ambiguity-as-stressor Project\Tobii script\AS_PatternPilotData\AS_DecisionTobiiData\Matlab data';
+    
 dataname = ['\ASD',num2str(subj(subjidx)), '_origData.mat']
 load([datafold,dataname])
 
@@ -18,6 +19,7 @@ filter.order = 3; % order of polynomial for sgolay filter?
 filter.framelen = 21; % length of window? must be odd number
 filter.clearWin = 1; % delete the n surrounding data points of a blink
 filter.velThreshold = 3; % de-blinking relative velocity threshold
+graph = false;
 
 % get screen size for convenience of plotting
 screensize = get(groot, 'Screensize');
@@ -60,7 +62,8 @@ end
 % dblink, interpolate and smooth data(preprocessing). Filtered data signal, and filted z-scored data signal
 sInitial.PupilLeft_filt=zeros(size(sInitial.PupilLeft));
 for i=1:size(sInitial.PupilLeft,1)
-    [sInitial.PupilLeft_filt(i,:),sInitial.PupilLeft_filtz(i,:)] = pupilPrepro(sInitial.PupilLeft(i,:), sInitial.Timestamp(i,:), filter);
+    [sInitial.PupilLeft_filt(i,:),sInitial.PupilLeft_filtz(i,:),sInitial.VelLeft_filt(i,:)] =...
+        pupilPrepro(sInitial.PupilLeft(i,:), sInitial.PupilLeft(i,:),sInitial.Timestamp(i,:), filter, graph);
 end
 
 % check the data quality: after preproc, how many trials remain
