@@ -1,4 +1,4 @@
-% function [sampfilt,sampfiltz,velfilt] = pupilPrepro(sampleft,sampright,sampt,filter)
+function [sampfilt,sampfiltz,velfilt] = pupilPrepro(sampleft,sampright,sampt,filter,graph)
 
 %% This function preprocesses the raw pupil data
 %
@@ -12,6 +12,7 @@
 %       - clearWin: number of surrounding data points to delete on both
 %         left and right sides. actually deleting (2*clearWin + 1) data points
 %       - velThreshold: how many std is compared with the velocity difference from mean
+%       - graph: true or fales, whether to output the figures of individual trial
 % Output:
 %   - sampfilt: filtered pupil size data
 %   - sampfiltz: z-scored filtered pupil size data
@@ -49,14 +50,14 @@
 % Ruonan Jia 12.07.2017 written
 
 %% For tsting the function, giving input to test the function
-sampleft = sInitial.PupilLeft(6,:);
-sampright= sInitial.PupilRight(6,:);
-sampt = sInitial.Timestamp(1,:);
+% sampleft = sInitial.PupilLeft(6,:);
+% sampright= sInitial.PupilRight(6,:);
+% sampt = sInitial.Timestamp(1,:);
 % filter.order = 3; % order of polynomial for sgolay filter?
-filter.framelen = 21; % length of windew? must be odd number
-filter.clearWin = 2; % delete the n surrounding data points of a blink
-filter.velThreshold = 2; % de-blinking velocity threshold
-filter.filterType = 'sgolay';
+% filter.framelen = 21; % length of windew? must be odd number
+% filter.clearWin = 2; % delete the n surrounding data points of a blink
+% filter.velThreshold = 2; % de-blinking velocity threshold
+% filter.filterType = 'sgolay';
 % filter.filterType = 'hannWindow';
 
 % decide if missing too much data
@@ -141,61 +142,63 @@ filter.filterType = 'sgolay';
     velfilt(1)=velfilt(2);
     
     %% Plot individual pupil time series results
-    screensize = get(groot, 'Screensize');
-    
-    % velocity profile
-    figure('Position', [screensize(3)/4 screensize(4)/22 screensize(3)/2 screensize(4)*10/12])
-    
-    % left side raw and deblinked
-    ax1 = subplot(3,1,1);
-    plot(ax1,sampt,velleft, 'LineStyle', '-.', 'Marker', 'o')
-    hold on
-    plot(sampt,veldbleft,'LineStyle', '-.', 'Marker', 'o')
-    title(ax1,'left')
-    % right side raw and deblinked
-    ax2 = subplot(3,1,2);
-    plot(ax2,sampt,velright, 'LineStyle', '-.', 'Marker', 'o')
-    hold on
-    plot(sampt,veldbright,'LineStyle', '-.', 'Marker', 'o')
-    title('right')
-    % filtered
-    ax3 = subplot(3,1,3);
-    plot(ax3,sampt,velfilt, 'LineStyle', '-.', 'Marker', 'o')
-    title('filtered')
-     
-    %% Plot pupil size time series
-    figure('Position', [screensize(3)/4 screensize(4)/22 screensize(3)/2 screensize(4)*10/12])
-    ax1 = subplot(3,1,1);
-    plot(ax1,sampt,sampleft,'LineStyle', '-.', 'Marker', 'o')
-    hold on
-    plot(sampt,sampright,'LineStyle', '-.', 'Marker', 'o')    
-    title(ax1,'raw signal')
-    
-    % ylim([3.2,4.4]);
-    ax2 = subplot(3,1,2);
-    plot(ax2,sampt,nanmean([sampleft;sampright]),'LineStyle', '-.', 'Marker', 'o')
-    hold on
-    plot(sampt,sampdb,'LineStyle', '-.', 'Marker', 'o')
-    plot(sampt,sampinterp,'LineStyle', '-', 'Marker', 'o')
-    plot(sampt,sampfilt,'LineStyle', '-', 'Marker', 'x')
-    title(ax2,'filtered signal')
-    xLimit = xlim;
-    yLimit = ylim;
-    if strcmp(filter.filterType,'sgolay')
-        txtPar = ['sgolay: order = ', num2str(filter.order), '; framlen = ', num2str(filter.framelen)];
-    elseif strcmp(filter.filterType, 'hannWindow')
-        txtPar = ['hannWindow: framlen = ', num2str(filter.framelen)];
-    end
-    text(xLimit(2)*5/9,yLimit(1)+(yLimit(2)-yLimit(1))/8,txtPar)
-    
-    % print z-scored data
-    ax3 = subplot(3,1,3);
-    plot(ax3,sampt, sampfiltz,'LineStyle', '-', 'Marker', '.')
-    hold on
-    title(ax3,'z-scored filtered signal')
-    xLimit = xlim;
-    yLimit = ylim;
-    text(xLimit(2)*5/9,yLimit(1)+(yLimit(2)-yLimit(1))/8,'z-scored')
+    if graph
+        screensize = get(groot, 'Screensize');
+
+        % velocity profile
+        figure('Position', [screensize(3)/4 screensize(4)/22 screensize(3)/2 screensize(4)*10/12])
+
+        % left side raw and deblinked
+        ax1 = subplot(3,1,1);
+        plot(ax1,sampt,velleft, 'LineStyle', '-.', 'Marker', 'o')
+        hold on
+        plot(sampt,veldbleft,'LineStyle', '-.', 'Marker', 'o')
+        title(ax1,'left')
+        % right side raw and deblinked
+        ax2 = subplot(3,1,2);
+        plot(ax2,sampt,velright, 'LineStyle', '-.', 'Marker', 'o')
+        hold on
+        plot(sampt,veldbright,'LineStyle', '-.', 'Marker', 'o')
+        title('right')
+        % filtered
+        ax3 = subplot(3,1,3);
+        plot(ax3,sampt,velfilt, 'LineStyle', '-.', 'Marker', 'o')
+        title('filtered')
+
+        %% Plot pupil size time series
+        figure('Position', [screensize(3)/4 screensize(4)/22 screensize(3)/2 screensize(4)*10/12])
+        ax1 = subplot(3,1,1);
+        plot(ax1,sampt,sampleft,'LineStyle', '-.', 'Marker', 'o')
+        hold on
+        plot(sampt,sampright,'LineStyle', '-.', 'Marker', 'o')    
+        title(ax1,'raw signal')
+
+        % ylim([3.2,4.4]);
+        ax2 = subplot(3,1,2);
+        plot(ax2,sampt,nanmean([sampleft;sampright]),'LineStyle', '-.', 'Marker', 'o')
+        hold on
+        plot(sampt,sampdb,'LineStyle', '-.', 'Marker', 'o')
+        plot(sampt,sampinterp,'LineStyle', '-', 'Marker', 'o')
+        plot(sampt,sampfilt,'LineStyle', '-', 'Marker', 'x')
+        title(ax2,'filtered signal')
+        xLimit = xlim;
+        yLimit = ylim;
+        if strcmp(filter.filterType,'sgolay')
+            txtPar = ['sgolay: order = ', num2str(filter.order), '; framlen = ', num2str(filter.framelen)];
+        elseif strcmp(filter.filterType, 'hannWindow')
+            txtPar = ['hannWindow: framlen = ', num2str(filter.framelen)];
+        end
+        text(xLimit(2)*5/9,yLimit(1)+(yLimit(2)-yLimit(1))/8,txtPar)
+
+        % print z-scored data
+        ax3 = subplot(3,1,3);
+        plot(ax3,sampt, sampfiltz,'LineStyle', '-', 'Marker', '.')
+        hold on
+        title(ax3,'z-scored filtered signal')
+        xLimit = xlim;
+        yLimit = ylim;
+        text(xLimit(2)*5/9,yLimit(1)+(yLimit(2)-yLimit(1))/8,'z-scored')
+   end
 % else
 %     % if data is bad, discard
 %     sampfilt = ones(size(samp))*NaN;
