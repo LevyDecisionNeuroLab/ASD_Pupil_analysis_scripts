@@ -22,7 +22,8 @@ for subj2plot = 1:length(subj)
     % normalize by subtractin the mean of the 2s ITI period
     pupilLeft_base = nanmean(pupilLeft_filt(:,1:120),2);
     pupilLeft_filt = pupilLeft_filt - pupilLeft_base;
-
+    
+    % pick subject to plot
     pupilLeft_filt = pupilLeft_filt(100*(subj2plot-1)+1:100*subj2plot,:);
     al = al(100*(subj2plot-1)+1:100*subj2plot,:);
     val = val(100*(subj2plot-1)+1:100*subj2plot,:);

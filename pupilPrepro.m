@@ -1,4 +1,4 @@
-function [sampfilt,sampfiltz,velfilt] = pupilPrepro(sampleft,sampright,sampt,filter,graph)
+% function [sampfilt,sampfiltz,velfilt] = pupilPrepro(sampleft,sampright,sampt,filter,graph)
 
 %% This function preprocesses the raw pupil data
 %
@@ -50,14 +50,15 @@ function [sampfilt,sampfiltz,velfilt] = pupilPrepro(sampleft,sampright,sampt,fil
 % Ruonan Jia 12.07.2017 written
 
 %% For tsting the function, giving input to test the function
-% sampleft = sInitial.PupilLeft(6,:);
-% sampright= sInitial.PupilRight(6,:);
-% sampt = sInitial.Timestamp(1,:);
-% filter.order = 3; % order of polynomial for sgolay filter?
-% filter.framelen = 21; % length of windew? must be odd number
-% filter.clearWin = 2; % delete the n surrounding data points of a blink
-% filter.velThreshold = 2; % de-blinking velocity threshold
-% filter.filterType = 'sgolay';
+sampleft = sInitial.PupilLeft(15,:);
+sampright= sInitial.PupilLeft(15,:);
+sampt = sInitial.Timestamp(1,:);
+filter.order = 3; % order of polynomial for sgolay filter?
+filter.framelen = 21; % length of windew? must be odd number
+filter.clearWin = 2; % delete the n surrounding data points of a blink
+filter.velThreshold = 2; % de-blinking velocity threshold
+filter.filterType = 'sgolay';
+graph = true;
 % filter.filterType = 'hannWindow';
 
 % decide if missing too much data
