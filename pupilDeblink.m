@@ -1,6 +1,6 @@
 function [vel,veldb,sampdb] = pupilDeblink(samp,sampt,filter)
 
-%% This function de-blink the raw pupil data
+%% This function preprocesses the raw pupil data
 %
 % Input:
 %   - samp: pupil size data
@@ -13,7 +13,7 @@ function [vel,veldb,sampdb] = pupilDeblink(samp,sampt,filter)
 %   - sampdb: deblinked pupil size data
 
 %% De-blink
-% Detect blink
+% Detect blink both left and right pupil data
  
 vel = zeros(size(samp)); % velocity profile, mm/s
 % calculate the velocity
