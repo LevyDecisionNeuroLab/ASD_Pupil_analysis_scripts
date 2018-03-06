@@ -12,11 +12,13 @@
 %       - clearWin: number of surrounding data points to delete on both
 %         left and right sides. actually deleting (2*clearWin + 1) data points
 %       - velThreshold: how many std is compared with the velocity difference from mean
-%       - graph: true or fales, whether to output the figures of individual trial
+%       - graph: true or fales, whether to output the figures of individual
+%         trial. If set to true, take long time to plot the graph.
+%         Recommended when testing.
 % Output:
 %   - sampfilt: filtered pupil size data
 %   - sampfiltz: z-scored filtered pupil size data
-%   - velfilt: velocity of z-scored filtered pupil size data. TO BE ADDED
+%   - velfilt: velocity of z-scored filtered pupil size data.
 
 %% Preprocessing steps
 % 
@@ -51,15 +53,16 @@
 
 %% For tsting the function, giving input to test the function
 sampleft = sInitial.PupilLeft(15,:);
-sampright= sInitial.PupilLeft(15,:);
-sampt = sInitial.Timestamp(1,:);
+sampright= sInitial.PupilRight(15,:);
+sampt = sInitial.Timestamp(15,:); 
 filter.order = 3; % order of polynomial for sgolay filter?
 filter.framelen = 21; % length of windew? must be odd number
 filter.clearWin = 2; % delete the n surrounding data points of a blink
 filter.velThreshold = 2; % de-blinking velocity threshold
 filter.filterType = 'sgolay';
-graph = true;
 % filter.filterType = 'hannWindow';
+graph = true;
+
 
 % decide if missing too much data
 % dataQual = 1-sum(isnan(samp))/length(samp);
@@ -67,45 +70,32 @@ graph = true;
     %% De-blink
     % Detect blink both left and right pupil data
     [velleft,veldbleft,sampdbleft] = pupilDeblink(sampleft,sampt,filter);
-    [velright,veldbright,sampdbright] = pupilDeblink(sampright,sampt,filter);
+    [velright,veldbright,sampdbright] = pupilDeblink(sampright,sampt,filter);    
     
-    % combine left and right time course    
+    %% Interpolate missing data
+    missLeft = find (isnan(sampdbleft)); % missing data
+    existLeft = find (isnan(sampdbleft)==0); % existing data
+
+    if ~isempty(existLeft)
+        % Linear interpolation
+        interpLeft = interp1(sampt(existLeft),sampdbleft(existLeft),sampt(missLeft));
+        sampinterpLeft=sampdbleft;
+        for i=1:length(missLeft)
+            if missLeft(i)<existLeft(1); continue; end
+            if missLeft(i)>existLeft(length(existLeft)); break; end
+            sampinterpLeft(missLeft(i))=interpLeft(i);
+        end
+    else % if after filtering, all data are missing
+         sampinterpLeft=sampdbleft;
+    end
+
+    %% combine left and right time course    
     sampdb = zeros(size(sampdbleft));
     sampdb(~isnan(sampdbleft) & ~isnan(sampdbright)) =...
         mean([sampdbleft(~isnan(sampdbleft) & ~isnan(sampdbright));sampdbright(~isnan(sampdbleft) & ~isnan(sampdbright))]);
     sampdb(isnan(sampdbleft) & ~isnan(sampdbright)) = sampdbright(isnan(sampdbleft) & ~isnan(sampdbright));
     sampdb(~isnan(sampdbleft) & isnan(sampdbright)) = sampdbleft(~isnan(sampdbleft) & isnan(sampdbright));
     sampdb(isnan(sampdbleft) & isnan(sampdbright)) = NaN;
-    
-    %% Interpolate missing data
-    miss = find (isnan(sampdb)); % missing data
-    exist = find (isnan(sampdb)==0); % existing data
-    % whole = [exist(1):length(sampfil)]; % the whole time series,excluding the first NaNs
-
-    if length(exist) > 0
-        % % Cubic Spline interpolation
-        % interp = spline(sampt(exist),sampfil(exist),sampt(miss));
-        % sampinterp=sampfil;
-        % for i=1:length(miss)
-        %     if miss(i)<exist(1); continue; end
-        %     if miss(i)>exist(length(exist)); break; end
-        %     sampinterp(miss(i))=interp(i);
-        % end
-
-        % Linear interpolation
-        interp = interp1(sampt(exist),sampdb(exist),sampt(miss));
-        sampinterp=sampdb;
-        for i=1:length(miss)
-            if miss(i)<exist(1); continue; end
-            if miss(i)>exist(length(exist)); break; end
-            sampinterp(miss(i))=interp(i);
-        end
-        % for i=1:length(miss)
-        %     sampinterp(miss(i))=interp(i);
-        % end
-    else % if after filtering, all data are missing
-         sampinterp=sampdb;
-    end
 
     %% Filtering
     if strcmp(filter.filterType,'sgolay')
