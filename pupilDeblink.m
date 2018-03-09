@@ -1,6 +1,6 @@
-function [vel,veldb,sampdb] = pupilDeblink(samp,sampt,filter)
+function [vel,veldb,sampdb,sampinterp] = pupilDeblink(samp,sampt,filter)
 
-%% This function preprocesses the raw pupil data
+%% This function de-blink and interpolate the raw pupil data
 %
 % Input:
 %   - samp: pupil size data
@@ -42,4 +42,30 @@ for i = 1:length(vel)
             veldb(i-filter.clearWin:length(vel))=NaN; 
         end
     end
+end
+
+%% Interpolate missing data
+miss = find (isnan(sampdb)); % missing data
+exist = find (isnan(sampdb)==0); % existing data
+
+if ~isempty(exist)
+    % % Cubic Spline interpolation
+    % interp = spline(sampt(exist),sampfil(exist),sampt(miss));
+    % sampinterp=sampfil;
+    % for i=1:length(miss)
+    %     if miss(i)<exist(1); continue; end
+    %     if miss(i)>exist(length(exist)); break; end
+    %     sampinterp(miss(i))=interp(i);
+    % end
+
+    % Linear interpolation
+    interp = interp1(sampt(exist),sampdb(exist),sampt(miss));
+    sampinterp=sampdb;
+    for i=1:length(miss)
+        if miss(i)<exist(1); continue; end
+        if miss(i)>exist(length(exist)); break; end
+        sampinterp(miss(i))=interp(i);
+    end
+else % if after de-blink, all data are missing
+     sampinterp=sampdb;
 end
