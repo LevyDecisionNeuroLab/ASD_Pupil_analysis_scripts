@@ -12,9 +12,8 @@ datafold = fullfile(root,'Matlab data','pupildata_extracted\');
 subj = [21 22 23 24 25 26 27 28 29 30 31 32 33 34];
 
 %% Extract pupil data from different time period
-for subjidx = 1:length(subj)
-    
-    subjidx = 2;
+for subjidx = 1:length(subj)   
+%     subjidx = 1;
     
     filename = fullfile(root, ['ASD' num2str(subj(subjidx)) '.txt']);
     s = tdfread(filename);
@@ -64,10 +63,63 @@ for subjidx = 1:length(subj)
     % figure
     % boundedline(sInitial.Timestamp(1,:), average, std,'-b.')
 
-    % ambig level and value for each trial
+    %% ambig level and value for each trial
     sInitial.AL = str2num(sInitial.Trial(:,6:8));
     sInitial.Val = str2num(sInitial.Trial(:,10:11));
+    
+    %% choice and RT    
+    i = 0; % counting index for going over each element in s in sequence
+    j = 0; % No. for trial 1~100
+    t0= 0;
+    t1= 0; 
+    sInitial.Rt = zeros(100,1);
+    sInitial.Resp = zeros(100,1);
+    sInitial.Choice = zeros(100,1);
+    
+    while i < length(s.Timestamp)
+        i=i+1;
+        if s.EventKey ~= 8 | s.Descriptor(i,1) ~= 'a'; continue; end
+        j=j+1;
+%         sInitial.Trial(j,:) = s.Descriptor(i,:);
+        while s.EventKey(i) ~= 8 | s.Descriptor(i,1) ~= 'c' 
+            i=i+1;
+        end
+        t0 = s.Timestamp(i);
+        while s.EventKey(i)~=4
+            i=i+1;
+        end
+        sInitial.Press(j,:) = s.Descriptor(i,:);
+        while s.EventKey(i)~= 16 | s.Descriptor(i,1) ~= 'c'
+            i=i+1;
+        end
+        t1=s.Timestamp(i-1);
+        sInitial.Rt(j) = t1-t0;
+    end
 
+    %lottery side
+    if ismember(subj(subjidx),[34,32,30,28,26,24,22]) % subjects who pressed 1 to choose lottery
+        sInitial.LotterySide = 'Left';
+    elseif ismember(subj(subjidx),[33,31,29,27,25,23,21]) % subjects who pressed 2 to choose lottery
+        sInitial.LotterySide = 'Right';
+    end
+
+    % Change response string to number
+    for j=1:100
+        sInitial.Resp(j) = str2num(sInitial.Press(j,7));
+        % choice lottery or not
+        if (strcmp(sInitial.LotterySide,'Left') && sInitial.Resp(j)==1) || (strcmp(sInitial.LotterySide,'Right') && sInitial.Resp(j)==2)
+            % lottery chosen
+            sInitial.Choice(j) = 1;
+        elseif sInitial.Resp(j) == 0;
+            % no response
+            sInitial.Choice(j) = 2;
+        else
+            % reference chosen
+            sInitial.Choice(j) = 0;
+        end
+    end
+
+    %% save data
     savefilename = fullfile(datafold, ['ASD' num2str(subj(subjidx)) '_Initial.mat']);
     save(savefilename, 'sInitial')
 
