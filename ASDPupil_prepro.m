@@ -18,13 +18,13 @@ filter = struct;
 filter.filterType = 'sgolay';
 filter.order = 3; % order of polynomial for sgolay filter?
 filter.framelen = 21; % length of window? must be odd number
-filter.clearWin = 4; % delete the n surrounding data points of a blink
+filter.clearWin = 2; % delete the n surrounding data points of a blink
 filter.velThreshold = 2; % de-blinking relative velocity threshold
-graph = true;
+graph = false;
 
 %% preprocessing
 for subjidx = 1:length(subj)
-    subjidx = 2;
+    subjidx = 14;
     inputdataname = ['ASD' num2str(subj(subjidx)) '_Initial.mat'];
     load([inputfold,inputdataname])
 
