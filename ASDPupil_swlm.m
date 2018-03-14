@@ -7,80 +7,47 @@
 root = 'D:\Ruonan\Projects in the lab\Ambiguity-as-stressor Project\Tobii script\AS_PatternPilotData\AS_DecisionTobiiData';
 subj = [21 22 23 24 25 26 27 28 29 30 31 32 33 34];
 
-datafold = fullfile(root,'Matlab data','pupildata\'); 
-figfold = fullfile(root, 'Matlab data', 'pupil regression fig');
+datafold = fullfile(root,'Matlab data','pupildata_normalized\'); 
+figfold = fullfile(root, 'Matlab data', 'pupil regression fig','Left right eye average_normalized');
 
 % get screen size for the convenience of plotting
 screensize = get(groot, 'Screensize');
 
 for subjidx = 1:length(subj)
-    dataname = ['ASD' num2str(subj(subjidx)) '_Initial.mat'];
+    %% load data and exclude bad trials
+    
+%     subjidx = 1; % for testing, should be commented out
+
+    dataname = ['ASD' num2str(subj(subjidx)) '_Initial_norm.mat'];
     load([datafold,dataname])
 
-    % check the data quality: after preproc, how many trials remain
-    trial2analyze = size(sInitial.PupilLeft_filtz,1);
-    for i = 1:size(sInitial.PupilLeft_filtz,1)
-        if sum(isnan(sInitial.PupilLeft_filtz(i,:)))== length(sInitial.PupilLeft_filtz(i,:))
-            trial2analyze = trial2analyze - 1;
-        end
-    end
+    % Choose the signal to look at
+    pupil = sInitial.filtered.Pupil_norm;
+    vel = sInitial.filtered.vel;
 
-    %% plot time course
-    % % plot raw data
-    % ts_initialLeft = timeseries(sInitial.PupilLeft(:,:),sInitial.Timestamp(1,:),'name', ['ASD ' num2str(subj(subjidx)) ' PupilSize_Initial']);
-    % % ts_initialLeft = timeseries(sInitial.PupilLeft(:,:),mean(sInitial.Timestamp(:,:),1));
-    % 
-    % figraw = figure('Position', [screensize(3)/4 screensize(4)/4 screensize(3)/2 screensize(4)/2]);
-    % plot(ts_initialLeft);
-    % figrawname = fullfile(datafold,['ASD' num2str(subj(subjidx)), '_raw.fig' ]);
-    % % saveas(figraw, figrawname)
-    % 
-    % average = nanmean(sInitial.PupilLeft(:,:));
-    % std = nanstd(sInitial.PupilLeft(:,:));
-    % % a function from toolbox kakearney boudedline-pkg
-    % figrawaverage = figure('Position', [screensize(3)/4 screensize(4)/4 screensize(3)/2 screensize(4)/2]);
-    % boundedline(sInitial.Timestamp(1,:), average, std,'-b.')
-    % title(['ASD ' num2str(subj(subjidx)) ' averaged raw timecourse with std'])
-    % figrawaveragename = fullfile(datafold,['ASD' num2str(subj(subjidx)), '_rawAverageStd.fig' ]);
-    % % saveas(figrawaverage, figrawaveragename)
-    % 
-    % % timeseries and figure
-    % ts_initialLeft_filt = timeseries(sInitial.PupilLeft_filt(:,:),sInitial.Timestamp(1,:),'name', ['ASD ' num2str(subj(subjidx)) ' PupilSize_Initial_filt']);
-    % figfiltaverage = figure('Position', [screensize(3)/4 screensize(4)/4 screensize(3)/2 screensize(4)/2]);
-    % plot(ts_initialLeft_filt)
-    % figfiltaveragename = fullfile(datafold,['ASD' num2str(subj(subjidx)), '_filtered.fig' ]);
-    % % saveas(figfiltaverage, figfiltaveragename)
-    % 
-    % 
-    % % plot averaged time course with shaded error bar
-    % average = nanmean(sInitial.PupilLeft_filtz(:,:));
-    % std = nanstd(sInitial.PupilLeft_filtz(:,:));
-    % se = std ./ sqrt(size(sInitial.PupilLeft_filtz,1));
-    % % a function from toolbox kakearney boudedline-pkg
-    % figfiltzaveragese = figure('Position', [screensize(3)/4 screensize(4)/4 screensize(3)/2 screensize(4)/2]);
-    % boundedline(sInitial.Timestamp(1,:), average, se,'-b.')
-    % % title(['ASD ' num2str(subj(subjidx)) ' averaged filtered z-scored timecourse with se'])
-    % % figfiltzaveragesename = fullfile(datafold,['ASD' num2str(subj(subjidx)), '_filtzAverageSe.fig' ]);
-    % % saveas(figfiltzaveragese, figfiltzaveragesename)
-    % 
-    % figfiltzaveragestd = figure('Position', [screensize(3)/4 screensize(4)/4 screensize(3)/2 screensize(4)/2]);
-    % boundedline(sInitial.Timestamp(1,:), average, std,'-r.')
-    % title(['ASD ' num2str(subj(subjidx)) ' averaged filtered z-scored timecourse with std'])
-    % figfiltzaveragestdname = fullfile(datafold,['ASD' num2str(subj(subjidx)), '_filtzAverageStd.fig' ]);
-    % % saveas(figfiltzaveragestd, figfiltzaveragestdname)
+    % data qualitiy: proportion of missing data for each trial
+    % first column-left, second column-right, third column-averaged
+    signalQual = sInitial.DataQual;
+    
+    % check the data quality: after preproc, how many trials remain
+    % standard for excluding a trial: in the chosen time window, if over 18% data is missing 
+    threshold = 0.3;
+    trial2analyze = sum(signalQual(:,3) < threshold);
+    pupil(signalQual(:,3) > threshold,:) = nan;
+    vel(signalQual(:,3) > threshold,:) = nan;    
+
 
     %% Linear model pupil ~ al + val, with a sliding window 
     x = [sInitial.AL sInitial.Val];
     windl = 0; % actual length = (windl+1+windl) * 1000/60 ms
-    signal = sInitial.PupilLeft_filt;
     timestamp = sInitial.Timestamp(1,:);
     % regression coefficient
-    regcoeff = zeros(length(signal),2);
+    regcoeff = zeros(length(pupil),2);
     % p-value
-    pval = zeros(length(signal),2);
+    pval = zeros(length(pupil),2);
 
-    for i = windl+1 : length(signal)-windl
-        y = nanmean(signal(:,i-windl:i+windl),2); % average of the time window
+    for i = windl+1 : length(pupil)-windl
+        y = nanmean(pupil(:,i-windl:i+windl),2); % average of the time window
         mdl = LinearModel.fit(x,y);
         coeff = table2array(mdl.Coefficients);
         regcoeff(i,1) = coeff(2,1); % regression coefficient for AL
@@ -144,20 +111,21 @@ for subjidx = 1:length(subj)
     title(['ASD ' num2str(subj(subjidx)), ' regression Pupil ~ val(red) +al(blue)'])
 
     figname = fullfile(figfold,['ASD' num2str(subj(subjidx)), '_regression_pupilsize.fig' ]);
-    saveas (figRegress, figname);
+    saveas (figRegress, figname);    
+    bmpname = fullfile(figfold,['ASD' num2str(subj(subjidx)), '_regression_pupilsize.bmp' ]);
+    saveas (figRegress, bmpname);    
 
     %% Linear model pupil_velocity ~ al + val, with a sliding window 
     x = [sInitial.AL sInitial.Val];
     windl = 0; % actual length = (windl+1+windl) * 1000/60 ms
-    signal = sInitial.Velleft_filt;
     timestamp = sInitial.Timestamp(1,:);
     % pre-allocate regression coefficient
-    regcoeff = zeros(length(signal),2);
+    regcoeff = zeros(length(vel),2);
     % pre-allocate p-value
-    pval = zeros(length(signal),2);
+    pval = zeros(length(vel),2);
 
-    for i = windl+1 : length(signal)-windl
-        y = nanmean(signal(:,i-windl:i+windl),2); % average of the time window
+    for i = windl+1 : length(vel)-windl
+        y = nanmean(vel(:,i-windl:i+windl),2); % average of the time window
         mdl = LinearModel.fit(x,y);
         coeff = table2array(mdl.Coefficients);
         regcoeff(i,1) = coeff(2,1); % regression coefficient for AL
@@ -222,6 +190,10 @@ for subjidx = 1:length(subj)
 
     figname = fullfile(figfold,['ASD' num2str(subj(subjidx)), '_regression_velocity.fig' ]);
     saveas (figRegress, figname);
+    bmpname = fullfile(figfold,['ASD' num2str(subj(subjidx)), '_regression_velocity.bmp' ]);
+    saveas (figRegress, bmpname);
+    
+    
 end
 
 

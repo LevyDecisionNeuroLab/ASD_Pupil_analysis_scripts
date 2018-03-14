@@ -5,17 +5,17 @@ function [sampfilt,sampfiltleft,sampfiltright,sampfiltz,velfilt] = combineLeftRi
 
 %% For tsting the function, giving input to test the function. 
 % Comment out this section when using the function
-
-% close all
 % 
-% trialn = 73;
+% % close all
+% 
+% trialn = 1;
 % sampleft = sInitial.PupilLeft(trialn,:);
 % sampright= sInitial.PupilRight(trialn,:);
 % sampt = sInitial.Timestamp(trialn,:);
 % 
 % filter.order = 3; % order of polynomial for sgolay filter?
 % filter.framelen = 21; % length of windew? must be odd number
-% filter.clearWin = 2; % delete the n surrounding data points of a blink
+% filter.clearWin = 0; % delete the n surrounding data points of a blink
 % filter.velThreshold = 2; % de-blinking velocity threshold
 % filter.filterType = 'sgolay';
 % % filter.filterType = 'hannWindow';

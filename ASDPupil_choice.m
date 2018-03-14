@@ -36,6 +36,9 @@ for subjidx = 1:length(subj)
     vel(signalQual(:,3) > threshold,:) = nan;    
 
 
+    %%
+    
+    
     %% Linear model pupil ~ al + val + choice, with a sliding window. Regression uses standardized data
     x = [zscore(sInitial.AL) zscore(sInitial.Val) zscore(sInitial.Choice)];
     windl = 0; % actual length = (windl+1+windl) * 1000/60 ms
