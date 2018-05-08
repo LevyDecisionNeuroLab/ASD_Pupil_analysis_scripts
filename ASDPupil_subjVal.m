@@ -42,6 +42,9 @@ for subjidx = 1:length(subj)
     % subjective value of the chose option
     subjValChosen = subjValLott .* sInitial.Choice + subjValRef .* (1-sInitial.Choice);
 
+    %% 
+    
+    
     %% clean signal and excluding bad trials    
     % Choose the signal to look at
     pupil = sInitial.filtered.Pupil_norm;

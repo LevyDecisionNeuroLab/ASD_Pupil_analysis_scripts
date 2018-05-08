@@ -20,11 +20,11 @@ filter.order = 3; % order of polynomial for sgolay filter?
 filter.framelen = 21; % length of window? must be odd number
 filter.clearWin = 2; % delete the n surrounding data points of a blink
 filter.velThreshold = 2; % de-blinking relative velocity threshold
-graph = false;
+graph = true;
 
 %% preprocessing
 for subjidx = 1:length(subj)
-    subjidx = 14;
+    subjidx = 1;
     inputdataname = ['ASD' num2str(subj(subjidx)) '_Initial.mat'];
     load([inputfold,inputdataname])
 
